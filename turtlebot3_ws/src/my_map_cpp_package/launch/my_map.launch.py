@@ -6,16 +6,23 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from enum import Enum
+
+class worldEnum(Enum):
+    package_name = 0
+    world_folder = 1
+    world_yaml_file = 2
 
 def generate_launch_description():
 
     ##CONFIGS##
     configs = {
-        'map_file' : os.path.join(get_package_share_directory('map_package'), 'all_maps', 'map.yaml'),
+        'map_file' : os.path.join(get_package_share_directory('map_package'), 'all_maps', 'map.yaml'), #package_name, map_folder_name, map_name
         'spawn_pose': ['-0.131087', '1.882443', '0.01'], #xyz
-        'robot_type': 'waffle_pi'
+        'robot_type': 'waffle_pi',
+        'world_path': ['turtlebot3_gazebo', 'worlds', 'turtlebot3_world.world'] #package_name, world_folder_name, world_name
     }
-
+    
     if not os.path.exists(configs['map_file']):
         print(f"ERROR: Map file not found at {map_file}. Ensure it is installed correctly.")
         sys.exit(1)  # Force halt the program
@@ -42,7 +49,7 @@ def generate_launch_description():
     
     gzserver_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(gazebo_pkg_path, 'launch', 'gzserver.launch.py')),
-        launch_arguments={'world': PathJoinSubstitution([FindPackageShare('turtlebot3_gazebo'), 'worlds', 'turtlebot3_world.world'])}.items()
+        launch_arguments={'world': PathJoinSubstitution([FindPackageShare(configs['world_path'][worldEnum.package_name.value]), configs['world_path'][worldEnum.world_folder.value], configs['world_path'][worldEnum.world_yaml_file.value]])}.items()
     )
 
     gzclient_cmd = IncludeLaunchDescription(
@@ -137,7 +144,6 @@ def generate_launch_description():
     return LaunchDescription([
 
         nav2_bringup,
-        # stop_robot_cmd,
         declare_tb3_model_cmd,
         set_tb3_model_env,
         declare_use_sim_time_cmd,
