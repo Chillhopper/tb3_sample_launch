@@ -18,9 +18,12 @@ def generate_launch_description():
     ##CONFIGS##
     configs = {
         'map_file' : os.path.join(get_package_share_directory('map_package'), 'all_maps', 'map.yaml'), #package_name, map_folder_name, map_name
-        'spawn_pose': ['-0.131087', '1.882443', '0.01'], #xyz
+        'spawn_pose': ['-2', '-0.5', '-0.00853'], #xyz
+        'spawn_orientation': ['4.935', '0.003'], #xy
         'robot_type': 'waffle_pi',
-        'world_path': ['turtlebot3_gazebo', 'worlds', 'turtlebot3_world.world'] #package_name, world_folder_name, world_name
+        'world_path': ['turtlebot3_gazebo', 'worlds', 'turtlebot3_world.world'], #package_name, world_folder_name, world_name
+        'custom_nav2_params': os.path.join(get_package_share_directory('my_map_cpp_package'), 'configs', 'custom_nav2_params.yaml'),
+        'custom_rviz2_params': os.path.join(get_package_share_directory('my_map_cpp_package'), 'configs', 'custom_rviz2_params.rviz')
     }
     
     if not os.path.exists(configs['map_file']):
@@ -71,15 +74,25 @@ def generate_launch_description():
             get_package_share_directory('turtlebot3_gazebo'),
             'launch',
             'spawn_turtlebot3.launch.py')),
-        launch_arguments={'x_pose': configs['spawn_pose'][0], 'y_pose': configs['spawn_pose'][1], 'z_pose': configs['spawn_pose'][2]}.items()
+        launch_arguments={
+            'x_pose': configs['spawn_pose'][0],
+            'y_pose': configs['spawn_pose'][1],
+            'z_pose': configs['spawn_pose'][2],
+            'yaw'   : configs['spawn_orientation'][1],
+            }.items()
     )
 
-    stop_robot_cmd = Node(
-        package='geometry_msgs',
-        executable='ros2 topic pub',
-        arguments=['/cmd_vel', 'geometry_msgs/msg/Twist', '{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}'],
-        output='screen'
-    )
+    initial_pose_publisher = Node(
+    package='geometry_msgs',
+    executable='initial_pose_publisher',
+    name='initial_pose_publisher',
+    output='screen',
+    parameters=[{
+        'initial_pose_x': configs['spawn_pose'][0],
+        'initial_pose_y': configs['spawn_pose'][1],
+        'initial_pose_yaw': configs['spawn_orientation'][1]
+    }]
+)
 
 
     # === Launch Map Server (Fixes Lifecycle Issue) ===
@@ -114,7 +127,7 @@ def generate_launch_description():
         name='rviz2',
         output='screen',
         parameters=[{'use_sim_time': True}],
-        arguments=['-d', '/opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz']
+        arguments=['-d', configs['custom_rviz2_params']]
     )
 
     amcl_node = Node(
@@ -136,7 +149,9 @@ def generate_launch_description():
             PythonLaunchDescriptionSource([get_package_share_directory('nav2_bringup'),'/launch','/bringup_launch.py']),
             launch_arguments={
             'use_sim_time': 'true',
-            'map':configs['map_file']}.items()
+            'map':configs['map_file'],
+            'params_file': configs['custom_nav2_params']
+            }.items()
         )
     
 
@@ -152,10 +167,5 @@ def generate_launch_description():
         robot_state_publisher_cmd,
         spawn_turtlebot_cmd,
         rviz_node
-
-        # amcl_node
-        # declare_map_yaml_cmd,
-        # map_server_node,
-        # lifecycle_manager,
 
     ])

@@ -10,9 +10,37 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(rviz2 REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
+find_package(behaviortree_cpp_v3 REQUIRED)
+find_package(image_transport)
+find_package(OpenCV REQUIRED)
+find_package(cv_bridge)
+find_package(geometry_msgs REQUIRED)
 
-install(DIRECTORY launch
+include_directories(
+  include
+  ${OpenCV_INCLUDE_DIRS}
+)
+
+
+# Add Executable
+add_executable(nav_main_node 
+
+  src/nav_main.cpp
+
+)
+
+target_link_libraries(nav_main_node
+  ${OpenCV_LIBS}
+)
+
+
+ament_target_dependencies(nav_main_node rclcpp nav_msgs geometry_msgs   behaviortree_cpp_v3 image_transport cv_bridge)
+
+install(DIRECTORY 
+  launch
+  configs
   DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
